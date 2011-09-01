@@ -1,9 +1,11 @@
 #!/usr/bin/php
 <?php
 $TARGET      = array('74.125.225.17');
-$PACKETS     = 5;
+$PACKETS     = 10;
 $MAX_LATENCY = 200;
-$DELAY       = 4;
+$DELAY       = 5;
+
+date_default_timezone_set('America/Chicago');
 
 function ping($target)
 {
@@ -47,7 +49,7 @@ do {
 			break;
 
 		case 'latency_change':
-			if ( (abs($stats['latency'] - $history['latency']) > ($history['latency'] * .2)) ) {
+			if ( (abs($stats['latency'] - $history['latency']) > ($history['latency'] * .2)) && $stats['latency'] > $MAX_LATENCY ) {
 				$state = 'latency';
 			} else if ( $stats['latency'] <= $MAX_LATENCY ) {
 				$state = 'stable';
@@ -89,6 +91,6 @@ do {
 			break;
 	}
 
-	echo $stats['loss'] . '% loss, ' . $stats['latency'] . "ms\n";
+	echo $stats['loss'] . '% loss, ' . $stats['latency'] . "ms\t" . date('Y-m-d H:i') . "\n";
 	sleep($sleep);
 } while ( true );
