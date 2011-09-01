@@ -1,9 +1,11 @@
 #!/usr/bin/php
 <?php
-$TARGET      = array('74.125.225.17');
+$TARGET      = array('www.google.com');
 $PACKETS     = 10;
 $MAX_LATENCY = 200;
 $DELAY       = 5;
+
+// TODO: Setup TARGET array to cycle through and recover. Possibly allow multiple TARGET silmutaneous monitoring targets
 
 date_default_timezone_set('America/Chicago');
 
