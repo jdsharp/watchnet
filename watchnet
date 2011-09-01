@@ -1,0 +1,94 @@
+#!/usr/bin/php
+<?php
+$TARGET      = array('74.125.225.17');
+$PACKETS     = 5;
+$MAX_LATENCY = 200;
+$DELAY       = 4;
+
+function ping($target)
+{
+	global $TARGET, $PACKETS;
+	/*
+	PING 74.125.225.17 (74.125.225.17): 56 data bytes
+	64 bytes from 74.125.225.17: icmp_seq=0 ttl=54 time=40.029 ms
+	64 bytes from 74.125.225.17: icmp_seq=1 ttl=55 time=39.316 ms
+	64 bytes from 74.125.225.17: icmp_seq=2 ttl=55 time=39.508 ms
+
+	--- 74.125.225.17 ping statistics ---
+	3 packets transmitted, 3 packets received, 0.0% packet loss
+	round-trip min/avg/max/stddev = 39.316/39.618/40.029/0.301 ms
+	*/
+
+	$t = $TARGET[0];
+	$ping = `ping -c $PACKETS $t`;
+
+	preg_match('/(\d\.\d)% packet loss/', $ping, $loss);
+	$loss = (float)$loss[1];
+
+	preg_match('/= \d+\.\d+\/(\d+\.\d+)\//', $ping, $latency);
+	$latency = (float)$latency[1];
+
+	return array('loss' => $loss, 'latency' => $latency);
+}
+
+$state = 'stable';
+$sleep = $DELAY;
+$history = array();
+do {
+	$stats = ping($target);
+	
+	switch ( $state ) {
+		case 'loss_change':
+			if ( $stats['loss'] > $history['loss'] ) {
+				$state = 'loss';
+			} else if ( $stats['loss'] < 10 ) {
+				$state = 'stable';
+			}
+			break;
+
+		case 'latency_change':
+			if ( (abs($stats['latency'] - $history['latency']) > ($history['latency'] * .2)) ) {
+				$state = 'latency';
+			} else if ( $stats['latency'] <= $MAX_LATENCY ) {
+				$state = 'stable';
+			}
+			break;
+
+		case 'stable':
+		default:
+			if ( $stats['loss'] > 10 ) {
+				$state = 'loss';
+			} else if ( $stats['latency'] > $MAX_LATENCY ) {
+				$state = 'latency';
+			}
+	}
+
+	switch ( $state ) {
+		case 'loss':
+			$loss = round($state['loss']);
+			`say "Internet has $loss percent packet loss"`;
+			$sleep = $DELAY * 4;
+
+			$state = 'loss_change';
+			$history = $stats;
+			break;
+
+		case 'latency':
+			$ms = round($stats['latency']);
+			`say "Latency is $ms milliseconds"`;
+
+			$state = 'latency_change';
+			$history = $stats;
+			break;
+
+		case 'stable':
+			`say "Internet is stable"`;
+			$history = $stats;
+			$sleep = $DELAY;
+			$state = '';
+			break;
+	}
+
+	echo $stats['loss'] . '% loss, ' . $stats['latency'] . "ms\n";
+	sleep($sleep);
+} while ( true );
