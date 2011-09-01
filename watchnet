@@ -11,7 +11,7 @@ date_default_timezone_set('America/Chicago');
 
 function ping($target)
 {
-	global $TARGET, $PACKETS;
+	global $PACKETS;
 	/*
 	PING 74.125.225.17 (74.125.225.17): 56 data bytes
 	64 bytes from 74.125.225.17: icmp_seq=0 ttl=54 time=40.029 ms
@@ -23,8 +23,7 @@ function ping($target)
 	round-trip min/avg/max/stddev = 39.316/39.618/40.029/0.301 ms
 	*/
 
-	$t = $TARGET[0];
-	$ping = `ping -c $PACKETS $t`;
+	$ping = `ping -c $PACKETS $target`;
 
 	preg_match('/(\d\.\d)% packet loss/', $ping, $loss);
 	$loss = (float)$loss[1];
@@ -32,14 +31,14 @@ function ping($target)
 	preg_match('/= \d+\.\d+\/(\d+\.\d+)\//', $ping, $latency);
 	$latency = (float)$latency[1];
 
-	return array('loss' => $loss, 'latency' => $latency);
+	return array('loss' => $loss, 'latency' => $latency, 'target' => $target);
 }
 
-$state = 'stable';
-$sleep = $DELAY;
+$state   = 'stable';
+$sleep   = $DELAY;
 $history = array();
 do {
-	$stats = ping($target);
+	$stats = ping($TARGET[0]);
 	
 	switch ( $state ) {
 		case 'loss_change':
@@ -93,6 +92,6 @@ do {
 			break;
 	}
 
-	echo $stats['loss'] . '% loss, ' . $stats['latency'] . "ms\t" . date('Y-m-d H:i') . "\n";
+	echo $stats['loss'] . "% loss\t" . $stats['latency'] . "ms\t" . $stats['target'] . "\t" . date('Y-m-d H:i') . "\n";
 	sleep($sleep);
 } while ( true );
